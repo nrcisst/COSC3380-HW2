@@ -11,22 +11,28 @@
     <header>
       <h1>University App</h1>
       <nav>
-        <div id="status">Ready</div>
+        <h2>Front Desk</h2>
+        <button id="btnBrowse">Browse 10 Rows</button>
+        <button id="btnReports">Run Reports</button>
+
+        <h2>Back Office</h2>
         <button id="btnCreate">Create Tables</button>
         <button id="btnInit">Init Lookups</button>
-        <button id="btnBrowse">Browse 10 Rows</button>
         <button id="btnSimulate">Simulation</button>
         <button id="btnTxnPay">Pay Tuition (Txn)</button>
         <button id="btnTxnGrades">Post Grades (Txn)</button>
-        <button id="btnReports">Run Reports</button>
+
         <button id="btnCancel">Cancel</button>
-      </nav>
+    </nav>
     </header>
   </div>
   <main id="app">
     <!-- results render here -->
+    <div id="status"></div>
   </main>
   <section id="results"></section>
+  <p class="muted"><a id="clearResults" href="#">Clear results</a></p>
+
   <script src="js/app.js"></script>
 </body>
 </html>
