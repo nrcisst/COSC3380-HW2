@@ -1,5 +1,17 @@
-# Placeholder ignore rules
+# Environment variables
+.env
+
+# Node modules
 node_modules/
+
+# macOS
 .DS_Store
+
+# Logs
 *.log
+npm-debug.log*
+
+# Editor directories
+.vscode/
+.idea/
 
