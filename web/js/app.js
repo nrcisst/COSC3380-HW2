@@ -2,54 +2,46 @@ const API = 'http://localhost:3000/api';
 
 const App = {
   init() {
-    document.getElementById('btnCreate').addEventListener('click', () => this.createTables());
-    document.getElementById('btnInit').addEventListener('click', () => this.seedLookups());
-    document.getElementById('btnSimulate').addEventListener('click', () => this.simulate());
-    document.getElementById('btnBrowse').addEventListener('click', () => this.browse());
-    document.getElementById('btnPayTuition').addEventListener('click', () => this.showPaymentForm());
-    document.getElementById('btnViewGrades').addEventListener('click', () => this.viewGrades());
-    document.getElementById('btnPostGrades').addEventListener('click', () => this.showGradeForm());
-    document.getElementById('btnReports').addEventListener('click', () => this.runReports());
-    document.getElementById('clearResults').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('results').innerHTML = '';
-      document.getElementById('inputForm').innerHTML = '';
-    });
+    const actions = {
+      btnCreate: () => this.apiCall('Creating tables...', '/create-tables', 'POST'),
+      btnInit: () => this.apiCall('Seeding lookup tables...', '/seed-lookups', 'POST'),
+      btnSimulate: () => this.apiCall('Running simulation (adding 20 payments)...', '/simulate', 'POST'),
+      btnBrowse: () => this.browse(),
+      btnPayTuition: () => this.showPaymentForm(),
+      btnViewGrades: () => this.viewGrades(),
+      btnPostGrades: () => this.showGradeForm(),
+      btnReports: () => this.runReports(),
+      clearResults: (e) => {
+        e.preventDefault();
+        document.getElementById('results').innerHTML = '';
+        document.getElementById('inputForm').innerHTML = '';
+      }
+    };
+    Object.entries(actions).forEach(([id, handler]) =>
+      document.getElementById(id).addEventListener('click', handler)
+    );
   },
 
-  async createTables() {
-    setStatus('Creating tables...', 'orange');
+  async apiCall(statusMsg, endpoint, method = 'GET', body = null) {
+    setStatus(statusMsg, 'orange');
     try {
-      const res = await fetch(`${API}/create-tables`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setStatus(data.message, 'green');
-      } else {
-        setStatus('Error: ' + data.error, 'red');
+      const options = { method };
+      if (body) {
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify(body);
       }
+      const res = await fetch(`${API}${endpoint}`, options);
+      const data = await res.json();
+      setStatus(data.success ? data.message : 'Error: ' + data.error, data.success ? 'green' : 'red');
+      return data;
     } catch (err) {
       setStatus('Error: ' + err.message, 'red');
+      return { success: false };
     }
   },
 
-  async seedLookups() {
-    setStatus('Seeding lookup tables...', 'orange');
-    try {
-      const res = await fetch(`${API}/seed-lookups`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setStatus(data.message, 'green');
-      } else {
-        setStatus('Error: ' + data.error, 'red');
-      }
-    } catch (err) {
-      setStatus('Error: ' + err.message, 'red');
-    }
-  },
-
-  async browse() {
-    document.getElementById('inputForm').innerHTML = `
-      <h3>Browse Tables</h3>
+  browse() {
+    this.showForm('Browse Tables', `
       <label>Select Table:
         <select id="browseTable">
           <option value="student">Students</option>
@@ -61,7 +53,7 @@ const App = {
         </select>
       </label>
       <button onclick="App.executeBrowse()">Browse</button>
-    `;
+    `);
   },
 
   async executeBrowse() {
@@ -81,24 +73,8 @@ const App = {
     }
   },
 
-  async simulate() {
-    setStatus('Running simulation (adding 20 payments)...', 'orange');
-    try {
-      const res = await fetch(`${API}/simulate`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        setStatus(data.message, 'green');
-      } else {
-        setStatus('Error: ' + data.error, 'red');
-      }
-    } catch (err) {
-      setStatus('Error: ' + err.message, 'red');
-    }
-  },
-
   showPaymentForm() {
-    document.getElementById('inputForm').innerHTML = `
-      <h3>Pay Tuition</h3>
+    this.showForm('Pay Tuition', `
       <label>Student ID: <input type="number" id="payStudentId" value="1" /></label><br>
       <label>Term: <input type="text" id="payTerm" value="2025FA" /></label><br>
       <label>Payment Method:
@@ -110,40 +86,25 @@ const App = {
       </label><br>
       <label>Amount: <input type="number" id="payAmount" value="325" /></label><br>
       <button onclick="App.submitPayment()">Submit Payment</button>
-    `;
+    `);
   },
 
   async submitPayment() {
-    const student_id = document.getElementById('payStudentId').value;
-    const term_code = document.getElementById('payTerm').value;
-    const kind_code = document.getElementById('payKind').value;
-    const amount = document.getElementById('payAmount').value;
-
-    setStatus('Processing payment...', 'orange');
-    try {
-      const res = await fetch(`${API}/txn/pay-tuition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id, term_code, kind_code, amount })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStatus(data.message, 'green');
-        document.getElementById('inputForm').innerHTML = '';
-      } else {
-        setStatus('Error: ' + data.error, 'red');
-      }
-    } catch (err) {
-      setStatus('Error: ' + err.message, 'red');
-    }
+    const body = {
+      student_id: document.getElementById('payStudentId').value,
+      term_code: document.getElementById('payTerm').value,
+      kind_code: document.getElementById('payKind').value,
+      amount: document.getElementById('payAmount').value
+    };
+    const data = await this.apiCall('Processing payment...', '/txn/pay-tuition', 'POST', body);
+    if (data.success) document.getElementById('inputForm').innerHTML = '';
   },
 
-  async viewGrades() {
-    document.getElementById('inputForm').innerHTML = `
-      <h3>View Student Grades</h3>
+  viewGrades() {
+    this.showForm('View Student Grades', `
       <label>Student ID: <input type="number" id="viewStudentId" value="1" /></label>
       <button onclick="App.executeViewGrades()">View My Grades</button>
-    `;
+    `);
   },
 
   async executeViewGrades() {
@@ -165,8 +126,7 @@ const App = {
   },
 
   showGradeForm() {
-    document.getElementById('inputForm').innerHTML = `
-      <h3>Post Grade (Instructor)</h3>
+    this.showForm('Post Grade (Instructor)', `
       <p><em>Tip: First browse "Enrollments" table to see student_id and offering_id</em></p>
       <label>Student ID: <input type="number" id="gradeStudentId" value="1" /></label><br>
       <label>Offering ID: <input type="number" id="gradeOfferingId" value="1" /></label><br>
@@ -182,32 +142,22 @@ const App = {
         </select>
       </label><br>
       <button onclick="App.submitGrade()">Post Grade</button>
-    `;
+    `);
   },
 
   async submitGrade() {
-    const student_id = document.getElementById('gradeStudentId').value;
-    const offering_id = document.getElementById('gradeOfferingId').value;
-    const tutor_id = document.getElementById('gradeTutorId').value;
-    const grade = document.getElementById('gradeValue').value;
+    const body = {
+      student_id: document.getElementById('gradeStudentId').value,
+      offering_id: document.getElementById('gradeOfferingId').value,
+      tutor_id: document.getElementById('gradeTutorId').value,
+      grade: document.getElementById('gradeValue').value
+    };
+    const data = await this.apiCall('Posting grade...', '/txn/post-grade', 'POST', body);
+    if (data.success) document.getElementById('inputForm').innerHTML = '';
+  },
 
-    setStatus('Posting grade...', 'orange');
-    try {
-      const res = await fetch(`${API}/txn/post-grade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id, offering_id, tutor_id, grade })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStatus(data.message, 'green');
-        document.getElementById('inputForm').innerHTML = '';
-      } else {
-        setStatus('Error: ' + data.error, 'red');
-      }
-    } catch (err) {
-      setStatus('Error: ' + err.message, 'red');
-    }
+  showForm(title, content) {
+    document.getElementById('inputForm').innerHTML = `<h3>${title}</h3>${content}`;
   },
 
   async runReports() {
@@ -235,34 +185,14 @@ function setStatus(msg, color) {
 
 function renderTable(data) {
   const results = document.getElementById('results');
-  results.innerHTML = '';
-
-  if (!data || data.length === 0) {
+  if (!data?.length) {
     results.textContent = 'No results to display.';
     return;
   }
 
-  const table = document.createElement('table');
   const headers = Object.keys(data[0]);
-  const thead = document.createElement('tr');
-  headers.forEach(key => {
-    const th = document.createElement('th');
-    th.textContent = key;
-    thead.appendChild(th);
-  });
-  table.appendChild(thead);
-
-  data.forEach(row => {
-    const tr = document.createElement('tr');
-    headers.forEach(key => {
-      const td = document.createElement('td');
-      td.textContent = row[key];
-      tr.appendChild(td);
-    });
-    table.appendChild(tr);
-  });
-
-  results.appendChild(table);
+  const rows = data.map(row => `<tr>${headers.map(key => `<td>${row[key]}</td>`).join('')}</tr>`).join('');
+  results.innerHTML = `<table><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>${rows}</table>`;
 }
 
 window.addEventListener('DOMContentLoaded', () => App.init());

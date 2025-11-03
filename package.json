@@ -2,10 +2,10 @@
   "name": "cosc3380-university-app",
   "version": "1.0.0",
   "description": "Team 15 - University Database Web Application",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
   },
   "keywords": ["database", "university", "postgresql", "express"],
   "author": "Team 15",

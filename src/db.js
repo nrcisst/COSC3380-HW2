@@ -1,8 +1,6 @@
-// PostgreSQL database connection module
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Create connection pool
 const pool = new Pool({
   host: process.env.PGHOST,
   port: process.env.PGPORT,
@@ -11,10 +9,7 @@ const pool = new Pool({
   password: process.env.PGPASSWORD,
 });
 
-pool.on('connect', () => {
-  console.log('✓ Connected to PostgreSQL database');
-});
-
+pool.on('connect', () => console.log('✓ Connected to PostgreSQL database'));
 pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
   process.exit(-1);
@@ -24,8 +19,7 @@ async function query(text, params) {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text: text.substring(0, 100), duration, rows: res.rowCount });
+    console.log('Executed query', { text: text.substring(0, 100), duration: Date.now() - start, rows: res.rowCount });
     return res;
   } catch (error) {
     console.error('Database query error:', error.message);
@@ -36,13 +30,11 @@ async function query(text, params) {
 async function queryFile(sqlContent) {
   const client = await pool.connect();
   try {
-    const res = await client.query(sqlContent);
-    return res;
+    return await client.query(sqlContent);
   } finally {
     client.release();
   }
 }
-
 
 async function transaction(callback) {
   const client = await pool.connect();
@@ -59,9 +51,4 @@ async function transaction(callback) {
   }
 }
 
-module.exports = {
-  query,
-  queryFile,
-  transaction,
-  pool,
-};
+module.exports = { query, queryFile, transaction, pool };
