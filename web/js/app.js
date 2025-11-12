@@ -11,10 +11,10 @@ const App = {
       btnViewGrades: () => this.viewGrades(),
       btnPostGrades: () => this.showGradeForm(),
       btnReports: () => this.runReports(),
-      clearResults: (e) => {
-        e.preventDefault();
+      clearResults: () => {
         document.getElementById('results').innerHTML = '';
         document.getElementById('inputForm').innerHTML = '';
+        document.getElementById('app').classList.remove('show');
       }
     };
     Object.entries(actions).forEach(([id, handler]) =>
@@ -181,6 +181,7 @@ function setStatus(msg, color) {
   const status = document.getElementById('status');
   status.textContent = msg;
   status.style.color = color;
+  document.getElementById('app').classList.add('show');
 }
 
 function renderTable(data) {
