@@ -64,7 +64,7 @@ app.post('/api/simulate', asyncHandler(async (req, res) => {
     }
   }
   const duration = Date.now() - start;
-  res.json({ success: true, message: `Simulation complete: ${paymentCount} in ${duration} ms.` });
+  res.json({ success: true, message: `Simulation complete: ${paymentCount} payments in ${duration} ms.` });
 }));
 
 app.get('/api/browse', asyncHandler(async (req, res) => {

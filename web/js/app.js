@@ -38,22 +38,19 @@ const App = {
       setStatus(`Concurrent test complete! Total time: ${totalTime}ms`, 'green');
 
       document.getElementById('results').innerHTML = `
-        <h3>Concurrent Simulation Results</h3>
+        <h3 style = "color:white">Concurrent Simulation Results</h3>
         <div style="margin: 20px 0; padding: 15px; background: rgba(0,255,0,0.1); border-left: 3px solid #0f0;">
           <h4>Simulation 1:</h4>
           <p>${result1.message}</p>
-          <p><strong>Duration:</strong> ${result1.duration_ms}ms</p>
         </div>
         <div style="margin: 20px 0; padding: 15px; background: rgba(0,255,255,0.1); border-left: 3px solid #0ff;">
           <h4>Simulation 2:</h4>
           <p>${result2.message}</p>
-          <p><strong>Duration:</strong> ${result2.duration_ms}ms</p>
         </div>
         <div style="margin: 20px 0; padding: 15px; background: rgba(255,255,0,0.1); border-left: 3px solid #ff0;">
           <h4>Summary:</h4>
           <p><strong>Total Wall-Clock Time:</strong> ${totalTime}ms</p>
-          <p><strong>Combined Duration:</strong> ${result1.duration_ms + result2.duration_ms}ms</p>
-          <p><em>Check the server terminal for detailed row count logs!</em></p>
+          <p><em>Check the server terminal for detailed row count logs</em></p>
         </div>
       `;
       document.getElementById('app').classList.add('show');

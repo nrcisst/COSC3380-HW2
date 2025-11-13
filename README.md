@@ -1,6 +1,6 @@
-# Campus Management System - HW2 Phase 1
+# Campus Management System - HW2 Phase 2
 
-Web-based campus management system for student enrollments, tuition payments, and grade management.
+Web-based campus management system for student enrollments, tuition payments, grade management, and transaction concurrency testing.
 
 ## Prerequisites
 
@@ -85,27 +85,54 @@ Now you're ready to use all features!
 
 ## How to Use
 
-### Browse Data
-Click **"Browse"** → Select a table → Click "Browse"
+The interface is organized into two sections:
 
-### Pay Tuition
-Click **"Pay Tuition"** → Enter student ID, term, payment method, and amount → Submit
+### Front Desk (Student Operations)
 
-### View Grades
-Click **"View Grades"** → Enter student ID → View grades
+**Pay Tuition**
+- Click **"Pay Tuition"** → Enter student ID, term code (e.g., "2025FA"), payment method, and amount → Submit
+- Payment methods: CASH, CARD, ACH
+- Uses ACID transactions with automatic rollback on failure
 
-### Post Grade
-Click **"Post Grade"** → Enter student ID, offering ID, tutor ID, and grade → Submit
-*Tip: Use Browse → Enrollments to find valid IDs*
+**View Grades**
+- Click **"View Grades"** → Enter student ID → View all grades with course details
 
-### Simulate Payments
-Click **"Simulate 20 Payments"** → Generates 20 random payment transactions
+**Browse Tables**
+- Click **"Browse Tables"** → Select a table from dropdown → View data
+- Available tables: All 14 campus database tables
 
-### View Reports
-Click **"Run Reports"** → See offering fill rates
+### Back Office (Admin Operations)
 
-### Clear Display
-Click **"Clear"** → Reset results area
+**Create Tables**
+- Click **"Create Tables"** → Creates complete database schema
+- Required as the first setup step
+
+**Initialize Lookups**
+- Click **"Initialize Lookups"** → Seeds database with sample data
+- Creates students, courses, enrollments, charges, and initial wallets
+- Required as the second setup step
+
+**Simulation (Auto-populate)**
+- Click **"Simulation"** → Generates 20 random payment transactions
+- Tests individual transaction processing
+- Shows timing and success rate
+
+**Concurrent Test**
+- Click **"Concurrent Test"** → Runs 2 payment simulations simultaneously
+- Tests transaction isolation and race condition handling
+- Demonstrates ACID properties under concurrent load
+- **NEW in Phase 2**
+
+**Post Grades (Instructor)**
+- Click **"Post Grades"** → Enter student ID, offering ID, tutor ID, and grade → Submit
+- Creates audit trail in mark_audit table
+- *Tip: Use Browse → enrol to find valid enrollment IDs*
+
+**Reports**
+- Click **"Reports"** → View multiple reports:
+  - Offering Fill Rate: Course enrollment percentages
+  - Term Billing Summary: Financial overview by term
+  - Student Balances: Outstanding balances for current term
 
 ## Project Structure
 
@@ -141,6 +168,13 @@ PORT=3000
 
 ## Features
 
+### Phase 2 Enhancements
+- **Concurrent Transaction Testing**: Run multiple simulations simultaneously to test isolation
+- **Enhanced UI**: Organized into Front Desk and Back Office sections
+- **Multiple Reports**: Offering fill rates, billing summaries, and student balances
+- **Dynamic Table Rendering**: Browse any table with automatic column detection
+
+### Core Features (Phase 1)
 - **Transaction Safety**: Payments use ACID transactions with automatic rollback
 - **Audit Trail**: All grade changes are logged in the `mark_audit` table
 - **Row-Level Locking**: Prevents race conditions using `FOR UPDATE`
@@ -157,16 +191,24 @@ PORT=3000
 
 ## API Endpoints
 
-- `POST /api/create-tables` - Create schema
-- `POST /api/seed-lookups` - Seed data
-- `GET /api/browse?table=<name>&limit=<n>` - Browse table
-- `GET /api/grades/:student_id` - Get student grades
-- `POST /api/txn/pay-tuition` - Process payment
-- `POST /api/txn/post-grade` - Post/update grade
-- `POST /api/simulate` - Simulate 20 payments
-- `GET /api/report/fill` - Offering fill rate report
-- `GET /api/report/billing` - Billing summary
-- `GET /api/report/balances?term=<code>` - Student balances
+### Setup & Data Management
+- `POST /api/create-tables` - Create complete database schema
+- `POST /api/seed-lookups` - Seed lookup tables and sample data
+- `GET /api/browse?table=<name>&limit=<n>` - Browse any table with limit
+
+### Transactions (ACID-compliant)
+- `POST /api/txn/pay-tuition` - Process tuition payment with wallet transfers
+- `POST /api/txn/post-grade` - Post or update student grade with audit logging
+- `POST /api/simulate` - Simulate 20 random payment transactions
+
+### Query & Reporting
+- `GET /api/grades/:student_id` - Get all grades for a student
+- `GET /api/report/fill` - Offering fill rate analysis
+- `GET /api/report/billing` - Term-by-term billing summary
+- `GET /api/report/balances?term=<code>` - Student balance report for specific term
+
+### Health Check
+- `GET /api/health` - Server status check
 
 ## Troubleshooting
 
@@ -199,6 +241,37 @@ psql -U postgres -c "CREATE ROLE campus_user WITH LOGIN PASSWORD 'campus123';"
 psql -U postgres -c "ALTER ROLE campus_user CREATEDB;"
 ```
 
+## Implementation Notes
+
+### Transaction Isolation
+The application implements proper transaction isolation using:
+- PostgreSQL transactions with `BEGIN`/`COMMIT`/`ROLLBACK`
+- Row-level locking with `FOR UPDATE` to prevent race conditions
+- Atomic operations ensuring data consistency
+- Automatic rollback on errors
+
+### Concurrency Testing
+The concurrent test feature demonstrates:
+- Multiple transactions executing simultaneously
+- Proper wallet balance updates without race conditions
+- Transaction isolation preventing dirty reads
+- Serializable execution despite parallel processing
+
+### Payment Flow
+1. Validates student, term, and charge existence
+2. Locks relevant rows with `FOR UPDATE`
+3. Inserts receipt record
+4. Updates charge paid amount
+5. For non-cash: Debits student wallet, credits company wallet
+6. Commits all changes atomically or rolls back on error
+
+### Grade Posting Flow
+1. Locks enrollment record with `FOR UPDATE`
+2. Retrieves old grade value
+3. Updates grade in enrollment table
+4. Creates audit record with old/new values and timestamp
+5. Commits transaction
+
 ## Team Information
 
-Team 15 - Database Systems HW2 Phase 1
+Team 15 - Database Systems HW2 Phase 2
