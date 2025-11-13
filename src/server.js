@@ -32,6 +32,7 @@ app.post('/api/seed-lookups', asyncHandler(async (req, res) => {
 }));
 
 app.post('/api/simulate', asyncHandler(async (req, res) => {
+  const start = Date.now();
   let paymentCount = 0;
   for (let i = 1; i <= 20; i++) {
     const student_id = Math.floor(Math.random() * 120) + 1;
@@ -39,6 +40,7 @@ app.post('/api/simulate', asyncHandler(async (req, res) => {
     const kind_code = ['CARD', 'ACH'][Math.floor(Math.random() * 2)];
 
     try {
+      const txnStart = Date.now();
       await db.transaction(async (client) => {
         const termResult = await client.query('SELECT term_id FROM campus.term WHERE code = $1', ['2025FA']);
         if (!termResult.rows.length) return;
@@ -48,17 +50,21 @@ app.post('/api/simulate', asyncHandler(async (req, res) => {
         if (!walletResult.rows.length) return;
         const wallet_id = walletResult.rows[0].wallet_id;
 
-        await client.query('INSERT INTO campus.receipt(student_id, term_id, wallet_id, kind_code, amount) VALUES ($1, $2, $3, $4, $5)', [student_id, term_id, wallet_id, kind_code, amount]);
-        await client.query('UPDATE campus.charge SET paid_amt = paid_amt + $1 WHERE student_id = $2 AND term_id = $3', [amount, student_id, term_id]);
-        await client.query('UPDATE campus.wallet SET balance = balance - $1 WHERE owner_type = $2 AND owner_id = $3 AND balance >= $1', [amount, 'STUDENT', student_id]);
-        await client.query('UPDATE campus.wallet SET balance = balance + $1 WHERE owner_type = $2 AND owner_id IS NULL', [amount, 'COMPANY']);
+        const receiptResult = await client.query('INSERT INTO campus.receipt(student_id, term_id, wallet_id, kind_code, amount) VALUES ($1, $2, $3, $4, $5)', [student_id, term_id, wallet_id, kind_code, amount]);
+        const chargeResult = await client.query('UPDATE campus.charge SET paid_amt = paid_amt + $1 WHERE student_id = $2 AND term_id = $3', [amount, student_id, term_id]);
+        const debitResult = await client.query('UPDATE campus.wallet SET balance = balance - $1 WHERE owner_type = $2 AND owner_id = $3 AND balance >= $1', [amount, 'STUDENT', student_id]);
+        const creditResult = await client.query('UPDATE campus.wallet SET balance = balance + $1 WHERE owner_type = $2 AND owner_id IS NULL', [amount, 'COMPANY']);
+
+        const txnDuration = Date.now() - txnStart;
+        console.log(`Payment ${i} [${txnDuration}ms]: Receipt inserted, Charge updated (${chargeResult.rowCount} rows), Wallet debited (${debitResult.rowCount} rows), Company credited (${creditResult.rowCount} rows)`);
       });
       paymentCount++;
     } catch (err) {
       console.log(`Payment ${i} failed:`, err.message);
     }
   }
-  res.json({ success: true, message: `Simulation complete: ${paymentCount} payments processed` });
+  const duration = Date.now() - start;
+  res.json({ success: true, message: `Simulation complete: ${paymentCount} in ${duration} ms.` });
 }));
 
 app.get('/api/browse', asyncHandler(async (req, res) => {
@@ -88,12 +94,14 @@ app.get('/api/grades/:student_id', asyncHandler(async (req, res) => {
 }));
 
 app.post('/api/txn/pay-tuition', asyncHandler(async (req, res) => {
+  const start = Date.now();
   const { student_id, term_code, kind_code, amount } = req.body;
 
   if (!student_id || !term_code || !kind_code || !amount) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
+  let rowCounts = {};
   await db.transaction(async (client) => {
     const termResult = await client.query('SELECT term_id FROM campus.term WHERE code = $1 FOR UPDATE', [term_code]);
     if (!termResult.rows.length) throw new Error(`Term ${term_code} not found`);
@@ -112,36 +120,53 @@ app.post('/api/txn/pay-tuition', asyncHandler(async (req, res) => {
     const wallet_id = walletResult.rows[0].wallet_id;
 
     const amt = parseFloat(amount);
-    await client.query('INSERT INTO campus.receipt(student_id, term_id, wallet_id, kind_code, amount) VALUES ($1, $2, $3, $4, $5)', [student_id, term_id, wallet_id, kind_code, amt]);
-    await client.query('UPDATE campus.charge SET paid_amt = paid_amt + $1 WHERE student_id = $2 AND term_id = $3', [amt, student_id, term_id]);
+    const receiptResult = await client.query('INSERT INTO campus.receipt(student_id, term_id, wallet_id, kind_code, amount) VALUES ($1, $2, $3, $4, $5)', [student_id, term_id, wallet_id, kind_code, amt]);
+    const chargeUpdateResult = await client.query('UPDATE campus.charge SET paid_amt = paid_amt + $1 WHERE student_id = $2 AND term_id = $3', [amt, student_id, term_id]);
+
+    rowCounts.receipt_inserted = receiptResult.rowCount;
+    rowCounts.charge_updated = chargeUpdateResult.rowCount;
 
     if (!isCash) {
-      const updateResult = await client.query('UPDATE campus.wallet SET balance = balance - $1 WHERE owner_type = $2 AND owner_id = $3 AND balance >= $1', [amt, 'STUDENT', student_id]);
-      if (updateResult.rowCount === 0) throw new Error(`Insufficient funds for student ${student_id}`);
-      await client.query('UPDATE campus.wallet SET balance = balance + $1 WHERE owner_type = $2 AND owner_id IS NULL', [amt, 'COMPANY']);
-    }
-  });
+      const debitResult = await client.query('UPDATE campus.wallet SET balance = balance - $1 WHERE owner_type = $2 AND owner_id = $3 AND balance >= $1', [amt, 'STUDENT', student_id]);
+      if (debitResult.rowCount === 0) throw new Error(`Insufficient funds for student ${student_id}`);
+      const creditResult = await client.query('UPDATE campus.wallet SET balance = balance + $1 WHERE owner_type = $2 AND owner_id IS NULL', [amt, 'COMPANY']);
 
-  res.json({ success: true, message: `Payment of $${amount} processed` });
+      rowCounts.wallet_debited = debitResult.rowCount;
+      rowCounts.company_credited = creditResult.rowCount;
+    } else {
+      rowCounts.payment_type = 'CASH (no wallet transfer)';
+    }
+
+    console.log(`Pay-Tuition: Student ${student_id}, Amount $${amt}, ${kind_code} - Rows affected:`, rowCounts);
+  });
+  const duration = Date.now() - start;
+  res.json({ success: true, message: `Payment of $${amount} processed in ${duration} ms.` });
 }));
 
 app.post('/api/txn/post-grade', asyncHandler(async (req, res) => {
+  const start = Date.now();
   const { student_id, offering_id, tutor_id, grade } = req.body;
 
   if (!student_id || !offering_id || !tutor_id || !grade) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
+  let rowCounts = {};
   await db.transaction(async (client) => {
     const enrolResult = await client.query('SELECT grade FROM campus.enrol WHERE student_id = $1 AND offering_id = $2 FOR UPDATE', [student_id, offering_id]);
     if (!enrolResult.rows.length) throw new Error(`Enrollment not found for student ${student_id} in offering ${offering_id}`);
     const old_grade = enrolResult.rows[0].grade;
 
-    await client.query('UPDATE campus.enrol SET grade = $1 WHERE student_id = $2 AND offering_id = $3', [grade, student_id, offering_id]);
-    await client.query('INSERT INTO campus.mark_audit(student_id, offering_id, old_grade, new_grade, by_tutor) VALUES ($1, $2, $3, $4, $5)', [student_id, offering_id, old_grade, grade, tutor_id]);
-  });
+    const gradeUpdateResult = await client.query('UPDATE campus.enrol SET grade = $1 WHERE student_id = $2 AND offering_id = $3', [grade, student_id, offering_id]);
+    const auditResult = await client.query('INSERT INTO campus.mark_audit(student_id, offering_id, old_grade, new_grade, by_tutor) VALUES ($1, $2, $3, $4, $5)', [student_id, offering_id, old_grade, grade, tutor_id]);
 
-  res.json({ success: true, message: `Grade updated to ${grade}` });
+    rowCounts.grade_updated = gradeUpdateResult.rowCount;
+    rowCounts.audit_inserted = auditResult.rowCount;
+
+    console.log(`Post-Grade: Student ${student_id}, Offering ${offering_id}, Grade ${old_grade} → ${grade} - Rows affected:`, rowCounts);
+  });
+  const duration = Date.now() - start;
+  res.json({ success: true, message: `Grade updated to ${grade} in ${duration} ms.` });
 }));
 
 app.get('/api/report/fill', asyncHandler(async (req, res) => {

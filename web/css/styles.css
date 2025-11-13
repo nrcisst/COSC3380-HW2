@@ -1,5 +1,5 @@
 :root {
-  --primary-red: #2d2d2d;
+  --primary-gray: #2d2d2d;
   --dark-red: #8b0000;
   --light-red: #e84855;
   --black: #1a1a1a;
@@ -27,7 +27,7 @@ body {
 }
 
 header {
-  background: linear-gradient(135deg, var(--dark-red) 0%, var(--primary-red) 100%);
+  background: linear-gradient(135deg, var(--dark-red) 0%, var(--primary-gray) 100%);
   padding: 30px;
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(196, 30, 58, 0.3);
@@ -55,7 +55,7 @@ h2 {
 }
 
 h3 {
-  color: var(--primary-red);
+  color: var(--primary-gray);
   margin-bottom: 15px;
   font-size: 1.5rem;
 }
@@ -65,7 +65,7 @@ nav {
 }
 
 button{
-  background: linear-gradient(135deg, var(--primary-red) 0%, var(--dark-red) 100%);
+  background: linear-gradient(135deg, var(--primary-gray) 0%, var(--dark-red) 100%);
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.2);
   padding: 12px 24px;
@@ -81,7 +81,7 @@ button{
 }
 
 button:hover{
-  background: linear-gradient(135deg, var(--light-red) 0%, var(--primary-red) 100%);
+  background: linear-gradient(135deg, var(--light-red) 0%, var(--primary-gray) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(196, 30, 58, 0.6);
   border-color: rgba(255, 255, 255, 0.4);
@@ -132,7 +132,7 @@ button:active {
 #inputForm input:focus,
 #inputForm select:focus {
   outline: none;
-  border-color: var(--primary-red);
+  border-color: var(--primary-gray);
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 0 15px rgba(196, 30, 58, 0.5);
 }
@@ -173,7 +173,7 @@ table {
 }
 
 th {
-  background: linear-gradient(135deg, var(--dark-red) 0%, var(--primary-red) 100%);
+  background: linear-gradient(135deg, var(--dark-red) 0%, var(--primary-gray) 100%);
   color: white;
   padding: 15px;
   text-align: left;
