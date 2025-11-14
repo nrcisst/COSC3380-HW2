@@ -93,6 +93,18 @@ app.get('/api/grades/:student_id', asyncHandler(async (req, res) => {
   res.json({ success: true, count: result.rows.length, data: result.rows });
 }));
 
+app.get('/api/wallet/:student_id', asyncHandler(async (req, res) => {
+  const result = await db.query(`
+    SELECT wallet_id, balance, owner_type, owner_id
+    FROM campus.wallet
+    WHERE owner_type = 'STUDENT' AND owner_id = $1
+  `, [req.params.student_id]);
+  if (!result.rows.length) {
+    return res.status(404).json({ success: false, error: 'Wallet not found' });
+  }
+  res.json({ success: true, wallet: result.rows[0] });
+}));
+
 app.post('/api/txn/pay-tuition', asyncHandler(async (req, res) => {
   const start = Date.now();
   const { student_id, term_code, kind_code, amount } = req.body;

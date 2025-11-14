@@ -10,6 +10,7 @@ const App = {
       btnBrowse: () => this.browse(),
       btnPayTuition: () => this.showPaymentForm(),
       btnViewGrades: () => this.viewGrades(),
+      btnCheckWallet: () => this.showWalletForm(),
       btnPostGrades: () => this.showGradeForm(),
       btnReports: () => this.runReports(),
       clearResults: () => {
@@ -18,9 +19,10 @@ const App = {
         document.getElementById('app').classList.remove('show');
       }
     };
-    Object.entries(actions).forEach(([id, handler]) =>
-      document.getElementById(id).addEventListener('click', handler)
-    );
+    Object.entries(actions).forEach(([id, handler]) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', handler);
+    });
   },
 
   async runConcurrentTest() {
@@ -134,7 +136,49 @@ const App = {
       amount: document.getElementById('payAmount').value
     };
     const data = await this.apiCall('Processing payment...', '/txn/pay-tuition', 'POST', body);
-    if (data.success) document.getElementById('inputForm').innerHTML = '';
+    if (data.success) {
+      document.getElementById('inputForm').innerHTML = '';
+      // Auto-refresh wallet after payment
+      await this.refreshWallet(body.student_id);
+    }
+  },
+
+  showWalletForm() {
+    this.showForm('Check Wallet Balance', `
+      <label>Student ID: <input type="number" id="walletStudentId" value="1" /></label>
+      <button onclick="App.executeCheckWallet()">Check Balance</button>
+    `);
+  },
+
+  async executeCheckWallet() {
+    const student_id = document.getElementById('walletStudentId').value;
+    await this.refreshWallet(student_id);
+  },
+
+  async refreshWallet(student_id) {
+    setStatus('Loading wallet...', 'orange');
+    try {
+      const res = await fetch(`${API}/wallet/${student_id}`);
+      const data = await res.json();
+      if (data.success) {
+        const wallet = data.wallet;
+        document.getElementById('results').innerHTML = `
+          <div style="padding: 20px; background: rgba(0,200,0,0.1); border-left: 4px solid #0f0;">
+            <h3 style="color: white; margin-top: 0;">Student Wallet</h3>
+            <p style="font-size: 18px;"><strong>Student ID:</strong> ${wallet.owner_id}</p>
+            <p style="font-size: 24px; color: #0f0;"><strong>Balance:</strong> $${parseFloat(wallet.balance).toFixed(2)}</p>
+            <p style="font-size: 14px; color: #888;">Wallet ID: ${wallet.wallet_id}</p>
+          </div>
+        `;
+        setStatus(`Wallet loaded for student ${student_id}`, 'green');
+        document.getElementById('app').classList.add('show');
+        document.getElementById('inputForm').innerHTML = '';
+      } else {
+        setStatus('Error: ' + data.error, 'red');
+      }
+    } catch (err) {
+      setStatus('Error: ' + err.message, 'red');
+    }
   },
 
   viewGrades() {

@@ -73,17 +73,16 @@ SELECT o.offering_id, d, '09:30'::time, '10:45'::time
 FROM offering o
 CROSS JOIN (VALUES (2),(4)) AS days(d);
 
--- each student → 2 random offerings
-WITH pick AS (
-  SELECT student_id,
-         (SELECT offering_id FROM offering ORDER BY random() LIMIT 1) AS a,
-         (SELECT offering_id FROM offering ORDER BY random() LIMIT 1) AS b
-  FROM student
-)
+-- each student → 2 random offerings (distributed more evenly)
 INSERT INTO enrol(student_id, offering_id)
-SELECT student_id, a FROM pick
-UNION
-SELECT student_id, b FROM pick
+SELECT s.student_id, o.offering_id
+FROM student s
+CROSS JOIN LATERAL (
+  SELECT offering_id
+  FROM offering
+  ORDER BY md5(s.student_id::text || offering_id::text || random()::text)
+  LIMIT 2
+) o
 ON CONFLICT DO NOTHING;
 
 -- charges for FA (credits * $325)
