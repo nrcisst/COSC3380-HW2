@@ -1,4 +1,4 @@
-# Campus Management System - HW2 Phase 2
+# Campus Management System 
 
 Web-based campus management system for student enrollments, tuition payments, grade management, and transaction concurrency testing.
 
@@ -86,6 +86,8 @@ Now you're ready to use all features!
 ## How to Use
 
 The interface is organized into two sections:
+
+**Cancel / Clear Button**: Use this button to cancel the current interaction and clear all results from the screen.
 
 ### Front Desk (Student Operations)
 
@@ -275,3 +277,14 @@ The concurrent test feature demonstrates:
 ## Team Information
 
 Team 15 - Database Systems HW2 Phase 2
+
+### Division of Work
+
+- **Biniam Habte**: Frontend UI, rendering logic, integration
+- **Rohan Kancherla**: ER modeling, normalization, schema design
+- **Ahmad Kaseb**: ACID transaction design, triggers, concurrency
+- **Ali Ismail**: Reporting SQL, seed data, documentation
+
+### Demo Video
+
+Watch the demo: [https://www.youtube.com/watch?v=e0UhrTk1yPE](https://www.youtube.com/watch?v=e0UhrTk1yPE)

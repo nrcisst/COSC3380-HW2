@@ -75,7 +75,26 @@ app.get('/api/browse', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid table name' });
   }
 
-  const result = await db.query(`SELECT * FROM campus.${table} LIMIT $1`, [parseInt(limit)]);
+  // Define primary key columns for each table to ensure consistent ordering
+  const orderByMap = {
+    'division': 'div_id',
+    'hall': 'hall_id',
+    'term': 'term_id',
+    'unit': 'unit_id',
+    'tutor': 'tutor_id',
+    'student': 'student_id',
+    'pay_kind': 'kind_code',
+    'offering': 'offering_id',
+    'timeslot': 'offering_id, dow, tstart',
+    'enrol': 'student_id, offering_id',
+    'charge': 'student_id, term_id',
+    'wallet': 'wallet_id',
+    'receipt': 'receipt_id',
+    'mark_audit': 'audit_id'
+  };
+
+  const orderBy = orderByMap[table] || 'ctid';
+  const result = await db.query(`SELECT * FROM campus.${table} ORDER BY ${orderBy} LIMIT $1`, [parseInt(limit)]);
   res.json({ success: true, table, count: result.rows.length, data: result.rows });
 }));
 

@@ -21,27 +21,4 @@
 
 **3NF/BCNF.** Minor cache: `charge.cstatus` (trigger keeps it right).
 
-**Mermaid**
-```mermaid
-erDiagram
-  division ||--o{ unit : hosts
-  division ||--o{ tutor : employs
-  division ||--o{ student : home
 
-  unit ||--o{ offering : offered_as
-  term ||--o{ offering : in
-  tutor ||--o{ offering : teaches
-  hall ||--o{ offering : assigned
-
-  offering ||--o{ timeslot : has
-  student ||--o{ enrol : takes
-  offering ||--o{ enrol : has
-
-  enrol ||--o{ mark_audit : changes
-
-  student ||--o{ charge : billed
-  term ||--o{ charge : period
-
-  wallet ||--o{ receipt : funds
-  charge ||--o{ receipt : applied_to
-  pay_kind ||--o{ receipt : uses
